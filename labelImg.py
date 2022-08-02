@@ -29,6 +29,7 @@ from libs.default_label_combobox import DefaultLabelComboBox
 from libs.resources import *
 from libs.constants import *
 from libs.utils import *
+from libs.points import *
 from libs.settings import Settings
 from libs.shape import Shape, DEFAULT_LINE_COLOR, DEFAULT_FILL_COLOR
 from libs.stringBundle import StringBundle
@@ -222,6 +223,9 @@ class MainWindow(QMainWindow, WindowMixin):
 
         open_dir = action(get_str('openDir'), self.open_dir_dialog,
                           'Ctrl+u', 'open', get_str('openDir'))
+        
+        open_file_points = action(get_str('openFilePoints'), self.open_file_points_dialog,
+                                 'Ctrl+t', 'open', get_str("openFilePointsDetail"))
 
         change_save_dir = action(get_str('changeSaveDir'), self.change_save_dir_dialog,
                                  'Ctrl+r', 'open', get_str('changeSavedAnnotationDir'))
@@ -427,7 +431,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.display_label_option.triggered.connect(self.toggle_paint_labels_option)
 
         add_actions(self.menus.file,
-                    (open, open_dir, change_save_dir, open_annotation, copy_prev_bounding, self.menus.recentFiles, save, save_format, save_as, close, reset_all, delete_image, quit))
+                    (open, open_dir, open_file_points, change_save_dir, open_annotation, copy_prev_bounding, self.menus.recentFiles, save, save_format, save_as, close, reset_all, delete_image, quit))
         add_actions(self.menus.help, (help_default, show_info, show_shortcut))
         add_actions(self.menus.view, (
             self.auto_saving,
@@ -449,12 +453,12 @@ class MainWindow(QMainWindow, WindowMixin):
 
         self.tools = self.toolbar('Tools')
         self.actions.beginner = (
-            open, open_dir, change_save_dir, open_next_image, open_prev_image, verify, save, save_format, None, create, copy, delete, None,
+            open, open_dir, open_file_points, change_save_dir, open_next_image, open_prev_image, verify, save, save_format, None, create, copy, delete, None,
             zoom_in, zoom, zoom_out, fit_window, fit_width, None,
             light_brighten, light, light_darken, light_org)
 
         self.actions.advanced = (
-            open, open_dir, change_save_dir, open_next_image, open_prev_image, save, save_format, None,
+            open, open_dir, open_file_points, change_save_dir, open_next_image, open_prev_image, save, save_format, None,
             create_mode, edit_mode, None,
             hide_all, show_all)
 
@@ -1170,6 +1174,10 @@ class MainWindow(QMainWindow, WindowMixin):
             self.canvas.setFocus(True)
             return True
         return False
+    
+    def load_file_for_points(self, file_path=None):
+        self.reset_state()
+        self.canvas
 
     def counter_str(self):
         """
@@ -1360,6 +1368,23 @@ class MainWindow(QMainWindow, WindowMixin):
         self.default_save_dir = target_dir_path
         if self.file_path:
             self.show_bounding_box_from_annotation_file(file_path=self.file_path)
+    
+    def open_file_points_dialog(self, _value=False, dir_path=None, silent=False):
+        if not self.may_continue():
+            return
+
+        path = os.path.dirname(ustr(self.file_path)) if self.file_path else '.'
+        formats = ['*.txt']
+        filters = "Label files (*.txt)"
+        filename,_ = QFileDialog.getOpenFileName(self, '%s - Choose Label file' % __appname__, path, filters)
+        if filename:
+            if isinstance(filename, (tuple, list)):
+                filename = filename[0]
+            
+            create_patch_files(filename)
+            # self.cur_img_idx = 0
+            # self.img_count = 1
+            # self.load_file(filename)
 
     def import_dir_images(self, dir_path):
         if not self.may_continue() or not dir_path:

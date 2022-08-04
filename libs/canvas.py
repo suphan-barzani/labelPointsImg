@@ -30,7 +30,7 @@ class Canvas(QWidget):
     shapeMoved = pyqtSignal()
     drawingPolygon = pyqtSignal(bool)
 
-    CREATE, EDIT = list(range(2))
+    CREATE, EDIT, CREATE_POINTS = list(range(3))
 
     epsilon = 24.0
 
@@ -98,6 +98,15 @@ class Canvas(QWidget):
             self.de_select_shape()
         self.prev_point = QPointF()
         self.repaint()
+
+    def set_point_editing(self, value=True):
+        pass
+        # self.mode = self.CREATE_POINTS
+        # if not value:  # Create
+        #     self.un_highlight()
+        #     self.de_select_shape()
+        # self.prev_point = QPointF()
+        # self.repaint()
 
     def un_highlight(self, shape=None):
         if shape == None or shape == self.h_shape:

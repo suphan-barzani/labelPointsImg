@@ -49,7 +49,7 @@ from libs.create_ml_io import JSON_EXT
 from libs.ustr import ustr
 from libs.hashableQListWidgetItem import HashableQListWidgetItem
 
-__appname__ = 'labelImg'
+__appname__ = 'labelPointsImg'
 
 
 class WindowMixin(object):
@@ -100,6 +100,9 @@ class MainWindow(QMainWindow, WindowMixin):
         self.last_open_dir = None
         self.cur_img_idx = 0
         self.img_count = len(self.m_img_list)
+
+        # When loading an annotation file for point labelling
+        self.points_annotation_file = None
 
         # Whether we need to save or not.
         self.dirty = False
@@ -266,6 +269,7 @@ class MainWindow(QMainWindow, WindowMixin):
                          'Ctrl+Shift+S', 'save-as', get_str('saveAsDetail'), enabled=False)
 
         close = action(get_str('closeCur'), self.close_file, 'Ctrl+W', 'close', get_str('closeCurDetail'))
+        self.close = close
 
         delete_image = action(get_str('deleteImg'), self.delete_image, 'Ctrl+Shift+D', 'close', get_str('deleteImgDetail'))
 
@@ -276,16 +280,30 @@ class MainWindow(QMainWindow, WindowMixin):
 
         create_mode = action(get_str('crtBox'), self.set_create_mode,
                              'w', 'new', get_str('crtBoxDetail'), enabled=False)
+        self.create_mode = create_mode
+
         edit_mode = action(get_str('editBox'), self.set_edit_mode,
                            'Ctrl+J', 'edit', get_str('editBoxDetail'), enabled=False)
+        self.edit_mode = edit_mode
+
+        create_points_mode = action(get_str('crtPoint'), self.set_create_points_mode,
+                                   '', 'new-point', get_str('crtPointDetail'), enabled=False)
+        self.create_points_mode = create_points_mode
 
         create = action(get_str('crtBox'), self.create_shape,
                         'w', 'new', get_str('crtBoxDetail'), enabled=False)
+        self.create = create
+                        
         delete = action(get_str('delBox'), self.delete_selected_shape,
                         'Delete', 'delete', get_str('delBoxDetail'), enabled=False)
         copy = action(get_str('dupBox'), self.copy_selected_shape,
                       'Ctrl+D', 'copy', get_str('dupBoxDetail'),
                       enabled=False)
+
+        create_point = action(get_str('crtPoint'), self.create_shape,
+                        '', 'new_point', get_str('crtPointDetail'), enabled=False)
+        delete_point = action(get_str('delPoint'), self.delete_selected_shape,
+                        '', 'delete_point', get_str('delPointDetail'), enabled=False)
 
         advanced_mode = action(get_str('advancedMode'), self.toggle_advanced_mode,
                                'Ctrl+Shift+A', 'expert', get_str('advancedModeDetail'),
@@ -387,7 +405,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.actions = Struct(save=save, save_format=save_format, saveAs=save_as, open=open, close=close, resetAll=reset_all, deleteImg=delete_image,
                               lineColor=color1, create=create, delete=delete, edit=edit, copy=copy,
                               createMode=create_mode, editMode=edit_mode, advancedMode=advanced_mode,
-                              shapeLineColor=shape_line_color, shapeFillColor=shape_fill_color,
+                              shapeLineColor=shape_line_color, shapeFillColor=shape_fill_color, createPointsMode=create_points_mode,
                               zoom=zoom, zoomIn=zoom_in, zoomOut=zoom_out, zoomOrg=zoom_org,
                               fitWindow=fit_window, fitWidth=fit_width,
                               zoomActions=zoom_actions,
@@ -454,12 +472,12 @@ class MainWindow(QMainWindow, WindowMixin):
         self.tools = self.toolbar('Tools')
         self.actions.beginner = (
             open, open_dir, open_file_points, change_save_dir, open_next_image, open_prev_image, verify, save, save_format, None, create, copy, delete, None,
-            zoom_in, zoom, zoom_out, fit_window, fit_width, None,
+            create_points_mode, zoom_in, zoom, zoom_out, fit_window, fit_width, None,
             light_brighten, light, light_darken, light_org)
 
         self.actions.advanced = (
             open, open_dir, open_file_points, change_save_dir, open_next_image, open_prev_image, save, save_format, None,
-            create_mode, edit_mode, None,
+            create_mode, edit_mode, create_points_mode, None,
             hide_all, show_all)
 
         self.statusBar().showMessage('%s started.' % __appname__)
@@ -631,12 +649,32 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def toggle_actions(self, value=True):
         """Enable/Disable widgets which depend on an opened image."""
+        i=1
         for z in self.actions.zoomActions:
             z.setEnabled(value)
         for z in self.actions.lightActions:
             z.setEnabled(value)
-        for action in self.actions.onLoadActive:
-            action.setEnabled(value)
+
+        if value is False:
+            for action in self.actions.onLoadActive:
+                action.setEnabled(False)
+            
+            return
+        
+        self.close.setEnabled(True)
+
+        if self.points_annotation_file is not None:
+            self.create.setEnabled(False)
+            self.create_mode.setEnabled(False)
+            self.edit_mode.setEnabled(False)
+
+            self.create_points_mode.setEnabled(True)
+        else:
+            self.create.setEnabled(True)
+            self.create_mode.setEnabled(True)
+            self.edit_mode.setEnabled(True)
+
+            self.create_points_mode.setEnabled(False)
 
     def queue_event(self, function):
         QTimer.singleShot(0, function)
@@ -644,7 +682,7 @@ class MainWindow(QMainWindow, WindowMixin):
     def status(self, message, delay=5000):
         self.statusBar().showMessage(message, delay)
 
-    def reset_state(self):
+    def reset_state(self, keep_points=False):
         self.items_to_shapes.clear()
         self.shapes_to_items.clear()
         self.label_list.clear()
@@ -654,6 +692,9 @@ class MainWindow(QMainWindow, WindowMixin):
         self.canvas.reset_state()
         self.label_coordinates.clear()
         self.combo_box.cb.clear()
+
+        if not keep_points:
+            self.points_annotation_file = None
 
     def current_item(self):
         items = self.label_list.selectedItems()
@@ -694,7 +735,7 @@ class MainWindow(QMainWindow, WindowMixin):
         elif browser.lower() in wb._browsers:
             wb.get(browser.lower()).open(link, new=2)
 
-    def show_default_tutorial_dialog(self):
+    def show_default_tutorial_dialog(self): 
         self.show_tutorial_dialog(browser='default')
 
     def show_info_dialog(self):
@@ -725,9 +766,17 @@ class MainWindow(QMainWindow, WindowMixin):
         self.actions.createMode.setEnabled(edit)
         self.actions.editMode.setEnabled(not edit)
 
+    def toggle_draw_points_mode(self, edit=True):
+        self.canvas.set_point_editing(edit)
+        self.actions.createPointsMode.setEnabled(edit)
+
     def set_create_mode(self):
         assert self.advanced()
         self.toggle_draw_mode(False)
+
+    def set_create_points_mode(self):
+        assert self.advanced()
+        self.toggle_draw_points_mode(False)
 
     def set_edit_mode(self):
         assert self.advanced()
@@ -1096,7 +1145,8 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def load_file(self, file_path=None):
         """Load the specified file, or the last opened file if None."""
-        self.reset_state()
+        self.reset_state(keep_points='points' in file_path[-10:-4])
+        # print(f'--- {self.points_annotation_file} ---')
         self.canvas.setEnabled(False)
         if file_path is None:
             file_path = self.settings.get(SETTING_FILENAME)
@@ -1161,7 +1211,11 @@ class MainWindow(QMainWindow, WindowMixin):
             self.paint_canvas()
             self.add_recent_file(self.file_path)
             self.toggle_actions(True)
-            self.show_bounding_box_from_annotation_file(self.file_path)
+            
+            if self.points_annotation_file is not None:
+                self.show_points_from_annotation_file()
+            else:
+                self.show_bounding_box_from_annotation_file(self.file_path)
 
             counter = self.counter_str()
             self.setWindowTitle(__appname__ + ' ' + file_path + ' ' + counter)
@@ -1172,12 +1226,10 @@ class MainWindow(QMainWindow, WindowMixin):
                 self.label_list.item(self.label_list.count() - 1).setSelected(True)
 
             self.canvas.setFocus(True)
+
             return True
+
         return False
-    
-    def load_file_for_points(self, file_path=None):
-        self.reset_state()
-        self.canvas
 
     def counter_str(self):
         """
@@ -1213,7 +1265,37 @@ class MainWindow(QMainWindow, WindowMixin):
                 self.load_yolo_txt_by_filename(txt_path)
             elif os.path.isfile(json_path):
                 self.load_create_ml_json_by_filename(json_path, file_path)
-            
+    
+    def show_points_from_annotation_file(self):
+        pass
+        # if self.default_save_dir is not None:
+        #     basename = os.path.basename(os.path.splitext(file_path)[0])
+        #     xml_path = os.path.join(self.default_save_dir, basename + XML_EXT)
+        #     txt_path = os.path.join(self.default_save_dir, basename + TXT_EXT)
+        #     json_path = os.path.join(
+        #         self.default_save_dir, basename + JSON_EXT)
+
+        #     """Annotation file priority:
+        #     PascalXML > YOLO
+        #     """
+        #     if os.path.isfile(xml_path):
+        #         self.load_pascal_xml_by_filename(xml_path)
+        #     elif os.path.isfile(txt_path):
+        #         self.load_yolo_txt_by_filename(txt_path)
+        #     elif os.path.isfile(json_path):
+        #         self.load_create_ml_json_by_filename(json_path, file_path)
+
+        # else:
+        #     xml_path = os.path.splitext(file_path)[0] + XML_EXT
+        #     txt_path = os.path.splitext(file_path)[0] + TXT_EXT
+        #     json_path = os.path.splitext(file_path)[0] + JSON_EXT
+
+        #     if os.path.isfile(xml_path):
+        #         self.load_pascal_xml_by_filename(xml_path)
+        #     elif os.path.isfile(txt_path):
+        #         self.load_yolo_txt_by_filename(txt_path)
+        #     elif os.path.isfile(json_path):
+        #         self.load_create_ml_json_by_filename(json_path, file_path)
 
     def resizeEvent(self, event):
         if self.canvas and not self.image.isNull()\
@@ -1380,11 +1462,24 @@ class MainWindow(QMainWindow, WindowMixin):
         if filename:
             if isinstance(filename, (tuple, list)):
                 filename = filename[0]
+
+            self.close_file()
             
-            create_patch_files(filename)
-            # self.cur_img_idx = 0
-            # self.img_count = 1
-            # self.load_file(filename)
+            patches = create_patch_files(filename)
+
+            self.file_path = None
+            self.points_annotation_file = f'{filename[:-3]}points{filename[-4:]}'
+            self.file_list_widget.clear()
+            self.m_img_list = patches
+            self.cur_img_idx = 0
+            self.img_count = len(patches)
+            self.open_next_image()
+
+            for imgPath in self.m_img_list:
+                item = QListWidgetItem(imgPath)
+                self.file_list_widget.addItem(item)
+            
+            # self.load_file(self.m_img_list[0])
 
     def import_dir_images(self, dir_path):
         if not self.may_continue() or not dir_path:
@@ -1663,7 +1758,6 @@ class MainWindow(QMainWindow, WindowMixin):
         self.set_format(FORMAT_YOLO)
         t_yolo_parse_reader = YoloReader(txt_path, self.image)
         shapes = t_yolo_parse_reader.get_shapes()
-        print(shapes)
         self.load_labels(shapes)
         self.canvas.verified = t_yolo_parse_reader.verified
 
@@ -1730,7 +1824,7 @@ def get_main_app(argv=None):
     args.class_file = args.class_file and os.path.normpath(args.class_file)
     args.save_dir = args.save_dir and os.path.normpath(args.save_dir)
 
-    # Usage : labelImg.py image classFile saveDir
+    # Usage : labePointslImg.py image classFile saveDir
     win = MainWindow(args.image_dir,
                      args.class_file,
                      args.save_dir)

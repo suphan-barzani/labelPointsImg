@@ -14,22 +14,22 @@ jobs:
           pip3 install pipenv
           pipenv install pyqt5 lxml
           pipenv run pip install pyqt5==5.15.6 lxml
-      - name: Build LabelImg
+      - name: Build labelPointsImg
         run: |
           pipenv run make qt5py3
           rm -rf build dist
-      - name: Package LabelImg
+      - name: Package labelPointsImg
         run: |
           pipenv run python setup.py py2app
-          open dist/labelImg.app
+          open dist/labelPointsImg.app
       - name: Archive macOS app
         run: |
           cd dist/
-          tar czf labelImg.tgz labelImg.app
+          tar czf labelPointsImg.tgz labelPointsImg.app
       - uses: actions/upload-artifact@v3
         with:
           name: macOS artifact
-          path: dist/labelImg.tgz
+          path: dist/labelPointsImg.tgz
   package-windows:
     runs-on: windows-latest
     steps:
@@ -37,16 +37,16 @@ jobs:
       - name: Setup Python Environment
         run: |
           pip3 install pyinstaller pyqt5==5.15.6 lxml
-      - name: Build LabelImg
+      - name: Build labelPointsImg
         run: |
           pyrcc5 -o libs/resources.py resources.qrc
-      - name: Package LabelImg
+      - name: Package labelPointsImg
         run: |
-          pyinstaller --hidden-import=pyqt5 --hidden-import=lxml -F -n "labelImg" -c labelImg.py -p ./libs -p ./
+          pyinstaller --hidden-import=pyqt5 --hidden-import=lxml -F -n "labelPointsImg" -c labelPointsImg.py -p ./libs -p ./
       - uses: actions/upload-artifact@v3
         with:
           name: Windows artifact
-          path: dist/labelImg.exe
+          path: dist/labelPointsImg.exe
   package-linux:
     runs-on: ubuntu-latest
     steps:
@@ -54,13 +54,13 @@ jobs:
       - name: Setup Python Environment
         run: |
           pip3 install pyinstaller pyqt5==5.15.6 lxml
-      - name: Build LabelImg
+      - name: Build labelPointsImg
         run: |
           pyrcc5 -o libs/resources.py resources.qrc
-      - name: Package LabelImg
+      - name: Package labelPointsImg
         run: |
-          pyinstaller --hidden-import=pyqt5 --hidden-import=lxml -F -n "labelImg" -c labelImg.py -p ./libs -p ./
+          pyinstaller --hidden-import=pyqt5 --hidden-import=lxml -F -n "labelPointsImg" -c labelPointsImg.py -p ./libs -p ./
       - uses: actions/upload-artifact@v3
         with:
           name: Linux artifact
-          path: dist/labelImg
+          path: dist/labelPointsImg

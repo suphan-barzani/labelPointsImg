@@ -3,28 +3,28 @@
 brew install python@2
 pip install --upgrade virtualenv
 
-# clone labelimg source
-rm -rf /tmp/labelImgSetup
-mkdir /tmp/labelImgSetup
-cd /tmp/labelImgSetup
-curl https://codeload.github.com/tzutalin/labelImg/zip/master --output labelImg.zip
-unzip labelImg.zip
-rm labelImg.zip
+# clone labelPointsImg source
+rm -rf /tmp/labelPointsImgSetup
+mkdir /tmp/labelPointsImgSetup
+cd /tmp/labelPointsImgSetup
+curl https://codeload.github.com/tzutalin/labelPointsImg/zip/master --output labelPointsImg.zip
+unzip labelPointsImg.zip
+rm labelPointsImg.zip
 
 # setup python3 space
-virtualenv --system-site-packages  -p python3 /tmp/labelImgSetup/labelImg-py3
-source /tmp/labelImgSetup/labelImg-py3/bin/activate
-cd labelImg-master
+virtualenv --system-site-packages  -p python3 /tmp/labelPointsImgSetup/labelPointsImg-py3
+source /tmp/labelPointsImgSetup/labelPointsImg-py3/bin/activate
+cd labelPointsImg-master
 
-# build labelImg app
+# build labelPointsImg app
 pip install py2app
 pip install PyQt5 lxml
 make qt5py3
 rm -rf build dist
 python setup.py py2app -A
-mv "/tmp/labelImgSetup/labelImg-master/dist/labelImg.app" /Applications
+mv "/tmp/labelPointsImgSetup/labelPointsImg-master/dist/labelPointsImg.app" /Applications
 # deactivate python3
 deactivate
 cd ../
-rm -rf /tmp/labelImgSetup
+rm -rf /tmp/labelPointsImgSetup
 echo 'DONE'

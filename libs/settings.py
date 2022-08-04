@@ -4,10 +4,10 @@ import pickle
 
 class Settings(object):
     def __init__(self):
-        # Be default, the home will be in the same folder as labelImg
+        # Be default, the home will be in the same folder as labelPointsImg
         home = os.path.expanduser("~")
         self.data = {}
-        self.path = os.path.join(home, '.labelImgSettings.pkl')
+        self.path = os.path.join(home, '.labelPointsImgSettings.pkl')
 
     def __setitem__(self, key, value):
         self.data[key] = value

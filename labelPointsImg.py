@@ -269,7 +269,7 @@ class MainWindow(QMainWindow, WindowMixin):
                          'Ctrl+Shift+S', 'save-as', get_str('saveAsDetail'), enabled=False)
 
         close = action(get_str('closeCur'), self.close_file, 'Ctrl+W', 'close', get_str('closeCurDetail'))
-        self.close = close
+        # self.close = close
 
         delete_image = action(get_str('deleteImg'), self.delete_image, 'Ctrl+Shift+D', 'close', get_str('deleteImgDetail'))
 
@@ -280,30 +280,34 @@ class MainWindow(QMainWindow, WindowMixin):
 
         create_mode = action(get_str('crtBox'), self.set_create_mode,
                              'w', 'new', get_str('crtBoxDetail'), enabled=False)
-        self.create_mode = create_mode
+        # self.create_mode = create_mode
 
         edit_mode = action(get_str('editBox'), self.set_edit_mode,
                            'Ctrl+J', 'edit', get_str('editBoxDetail'), enabled=False)
-        self.edit_mode = edit_mode
+        # self.edit_mode = edit_mode
 
         create_points_mode = action(get_str('crtPoint'), self.set_create_points_mode,
                                    '', 'new-point', get_str('crtPointDetail'), enabled=False)
-        self.create_points_mode = create_points_mode
+        # self.create_points_mode = create_points_mode
 
         create = action(get_str('crtBox'), self.create_shape,
                         'w', 'new', get_str('crtBoxDetail'), enabled=False)
-        self.create = create
+        # self.create = create
+
+        create_point = action(get_str('crtBox'), self.create_point,
+                        'w', 'new', get_str('crtBoxDetail'), enabled=False)
+        # self.create_point = create_point
                         
         delete = action(get_str('delBox'), self.delete_selected_shape,
                         'Delete', 'delete', get_str('delBoxDetail'), enabled=False)
         copy = action(get_str('dupBox'), self.copy_selected_shape,
-                      'Ctrl+D', 'copy', get_str('dupBoxDetail'),
+                      '', 'copy', get_str('dupBoxDetail'),
                       enabled=False)
 
-        create_point = action(get_str('crtPoint'), self.create_shape,
-                        '', 'new_point', get_str('crtPointDetail'), enabled=False)
-        delete_point = action(get_str('delPoint'), self.delete_selected_shape,
-                        '', 'delete_point', get_str('delPointDetail'), enabled=False)
+        # create_point = action(get_str('crtPoint'), self.create_shape,
+        #                 '', 'new_point', get_str('crtPointDetail'), enabled=False)
+        # delete_point = action(get_str('delPoint'), self.delete_selected_shape,
+        #                 '', 'delete_point', get_str('delPointDetail'), enabled=False)
 
         advanced_mode = action(get_str('advancedMode'), self.toggle_advanced_mode,
                                'Ctrl+Shift+A', 'expert', get_str('advancedModeDetail'),
@@ -414,11 +418,15 @@ class MainWindow(QMainWindow, WindowMixin):
                               fileMenuActions=(
                                   open, open_dir, save, save_as, close, reset_all, quit),
                               beginner=(), advanced=(),
-                              editMenu=(edit, copy, delete,
-                                        None, color1, self.draw_squares_option),
+                            #   editMenu=(edit, copy, delete,
+                            #             None, color1, self.draw_squares_option),
+                            #   beginnerContext=(create, edit, copy, delete),
+                            #   advancedContext=(create_mode, edit_mode, edit, copy,
+                            #                    delete, shape_line_color, shape_fill_color),
+                              editMenu=(edit, delete, None, color1, self.draw_squares_option),
                               beginnerContext=(create, edit, copy, delete),
-                              advancedContext=(create_mode, edit_mode, edit, copy,
-                                               delete, shape_line_color, shape_fill_color),
+                              advancedContext=(create_mode, edit_mode, edit, delete,
+                                               shape_line_color, shape_fill_color),
                               onLoadActive=(
                                   close, create, create_mode, edit_mode),
                               onShapesPresent=(save_as, hide_all, show_all))
@@ -471,7 +479,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         self.tools = self.toolbar('Tools')
         self.actions.beginner = (
-            open, open_dir, open_file_points, change_save_dir, open_next_image, open_prev_image, verify, save, save_format, None, create, copy, delete, None,
+            open, open_dir, open_file_points, change_save_dir, open_next_image, open_prev_image, verify, save, save_format, None, create, delete, None,
             create_points_mode, zoom_in, zoom, zoom_out, fit_window, fit_width, None,
             light_brighten, light, light_darken, light_org)
 
@@ -661,20 +669,20 @@ class MainWindow(QMainWindow, WindowMixin):
             
             return
         
-        self.close.setEnabled(True)
+        self.actions.close.setEnabled(True)
 
         if self.points_annotation_file is not None:
-            self.create.setEnabled(False)
-            self.create_mode.setEnabled(False)
-            self.edit_mode.setEnabled(False)
+            self.actions.create.setEnabled(False)
+            self.actions.createMode.setEnabled(False)
+            self.actions.editMode.setEnabled(False)
 
-            self.create_points_mode.setEnabled(True)
+            self.actions.createPointsMode.setEnabled(True)
         else:
-            self.create.setEnabled(True)
-            self.create_mode.setEnabled(True)
-            self.edit_mode.setEnabled(True)
+            self.actions.create.setEnabled(True)
+            self.actions.createMode.setEnabled(True)
+            self.actions.editMode.setEnabled(True)
 
-            self.create_points_mode.setEnabled(False)
+            self.actions.createPointsMode.setEnabled(False)
 
     def queue_event(self, function):
         QTimer.singleShot(0, function)
@@ -747,9 +755,14 @@ class MainWindow(QMainWindow, WindowMixin):
         self.show_tutorial_dialog(browser='default', link='https://github.com/tzutalin/labelImg#Hotkeys')
 
     def create_shape(self):
+        print('llega')
         assert self.beginner()
         self.canvas.set_editing(False)
         self.actions.create.setEnabled(False)
+
+    def create_point(self):
+        assert self.beginner()
+        self.actions.create_point.setEnabled(False)
 
     def toggle_drawing_sensitive(self, drawing=True):
         """In the middle of drawing, toggling between modes should be disabled."""

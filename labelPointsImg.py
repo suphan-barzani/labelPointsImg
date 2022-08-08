@@ -294,8 +294,8 @@ class MainWindow(QMainWindow, WindowMixin):
                         'w', 'new', get_str('crtBoxDetail'), enabled=False)
         # self.create = create
 
-        create_point = action(get_str('crtBox'), self.create_point,
-                        'w', 'new', get_str('crtBoxDetail'), enabled=False)
+        create_point = action(get_str('crtPoint'), self.create_point,
+                        'M', 'new-point', get_str('crtPointDetail'), enabled=False)
         # self.create_point = create_point
                         
         delete = action(get_str('delBox'), self.delete_selected_shape,
@@ -303,11 +303,6 @@ class MainWindow(QMainWindow, WindowMixin):
         copy = action(get_str('dupBox'), self.copy_selected_shape,
                       '', 'copy', get_str('dupBoxDetail'),
                       enabled=False)
-
-        # create_point = action(get_str('crtPoint'), self.create_shape,
-        #                 '', 'new_point', get_str('crtPointDetail'), enabled=False)
-        # delete_point = action(get_str('delPoint'), self.delete_selected_shape,
-        #                 '', 'delete_point', get_str('delPointDetail'), enabled=False)
 
         advanced_mode = action(get_str('advancedMode'), self.toggle_advanced_mode,
                                'Ctrl+Shift+A', 'expert', get_str('advancedModeDetail'),
@@ -406,10 +401,12 @@ class MainWindow(QMainWindow, WindowMixin):
         self.draw_squares_option.triggered.connect(self.toggle_draw_square)
 
         # Store actions for further handling.
-        self.actions = Struct(save=save, save_format=save_format, saveAs=save_as, open=open, close=close, resetAll=reset_all, deleteImg=delete_image,
+        self.actions = Struct(save=save, save_format=save_format, saveAs=save_as, open=open, close=close,
+                              resetAll=reset_all, deleteImg=delete_image,
                               lineColor=color1, create=create, delete=delete, edit=edit, copy=copy,
                               createMode=create_mode, editMode=edit_mode, advancedMode=advanced_mode,
-                              shapeLineColor=shape_line_color, shapeFillColor=shape_fill_color, createPointsMode=create_points_mode,
+                              shapeLineColor=shape_line_color, shapeFillColor=shape_fill_color,
+                              createPointsMode=create_points_mode,
                               zoom=zoom, zoomIn=zoom_in, zoomOut=zoom_out, zoomOrg=zoom_org,
                               fitWindow=fit_window, fitWidth=fit_width,
                               zoomActions=zoom_actions,
@@ -755,7 +752,6 @@ class MainWindow(QMainWindow, WindowMixin):
         self.show_tutorial_dialog(browser='default', link='https://github.com/tzutalin/labelImg#Hotkeys')
 
     def create_shape(self):
-        print('llega')
         assert self.beginner()
         self.canvas.set_editing(False)
         self.actions.create.setEnabled(False)
@@ -780,16 +776,17 @@ class MainWindow(QMainWindow, WindowMixin):
         self.actions.editMode.setEnabled(not edit)
 
     def toggle_draw_points_mode(self, edit=True):
-        self.canvas.set_point_editing(edit)
+        self.canvas.set_placing_points(edit)
         self.actions.createPointsMode.setEnabled(edit)
+        self.actions.createMode.setEnabled(not edit)
+        self.actions.editMode.setEnabled(not edit)
 
     def set_create_mode(self):
         assert self.advanced()
-        self.toggle_draw_mode(False)
+        self.toggle_draw_mode(edit=False)
 
     def set_create_points_mode(self):
-        assert self.advanced()
-        self.toggle_draw_points_mode(False)
+        self.toggle_draw_points_mode(True)
 
     def set_edit_mode(self):
         assert self.advanced()

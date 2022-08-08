@@ -54,5 +54,23 @@ def create_patch_files(labelfile):
         to_return.append(filename)
     
     return to_return
-    
 
+DEFAULT_POINT_FILL_COLOR = QColor(255, 0, 0, 255)
+
+class Point:
+    point_size = 16
+    scale = 1.0
+    vertex_point_color = DEFAULT_POINT_FILL_COLOR
+
+    def __init__(self, pos):
+        self.x = pos.x()
+        self.y = pos.y()
+    
+    def paint(self, painter):
+        d = self.point_size / self.scale
+        
+        path = QPainterPath()
+        path.addEllipse(self.x, self.y, d / 2.0, d / 2.0)
+        
+        painter.drawPath(path)
+        painter.fillPath(path, DEFAULT_POINT_FILL_COLOR)

@@ -11,6 +11,7 @@ except ImportError:
 
 from libs.shape import Shape
 from libs.utils import distance
+from libs.points import Point
 
 CURSOR_DEFAULT = Qt.ArrowCursor
 CURSOR_POINT = Qt.PointingHandCursor
@@ -38,6 +39,7 @@ class Canvas(QWidget):
         super(Canvas, self).__init__(*args, **kwargs)
         # Initialise local state.
         self.mode = self.EDIT
+        self.points = []
         self.shapes = []
         self.current = None
         self.selected_shape = None  # save the selected shape here
@@ -87,6 +89,9 @@ class Canvas(QWidget):
 
     def drawing(self):
         return self.mode == self.CREATE
+    
+    def placing_points(self):
+        return self.mode == self.CREATE_POINTS
 
     def editing(self):
         return self.mode == self.EDIT
@@ -98,15 +103,15 @@ class Canvas(QWidget):
             self.de_select_shape()
         self.prev_point = QPointF()
         self.repaint()
+    
+    def set_placing_points(self, value=True):
+        self.mode = self.CREATE_POINTS if value else self.EDIT
 
-    def set_point_editing(self, value=True):
-        pass
-        # self.mode = self.CREATE_POINTS
-        # if not value:  # Create
-        #     self.un_highlight()
-        #     self.de_select_shape()
-        # self.prev_point = QPointF()
-        # self.repaint()
+        if value:  # Place points
+            self.un_highlight()
+            self.de_select_shape()
+
+        self.repaint()
 
     def un_highlight(self, shape=None):
         if shape == None or shape == self.h_shape:
@@ -172,6 +177,9 @@ class Canvas(QWidget):
                 self.prev_point = pos
             self.repaint()
             return
+        
+        if self.placing_points():
+            self.override_cursor(CURSOR_POINT)
 
         # Polygon copy moving.
         if Qt.RightButton & ev.buttons():
@@ -223,46 +231,50 @@ class Canvas(QWidget):
         # - Highlight shapes
         # - Highlight vertex
         # Update shape/vertex fill and tooltip value accordingly.
-        self.setToolTip("Image")
-        priority_list = self.shapes + ([self.selected_shape] if self.selected_shape else [])
-        for shape in reversed([s for s in priority_list if self.isVisible(s)]):
-            # Look for a nearby vertex to highlight. If that fails,
-            # check if we happen to be inside a shape.
-            index = shape.nearest_vertex(pos, self.epsilon)
-            if index is not None:
-                if self.selected_vertex():
-                    self.h_shape.highlight_clear()
-                self.h_vertex, self.h_shape = index, shape
-                shape.highlight_vertex(index, shape.MOVE_VERTEX)
-                self.override_cursor(CURSOR_POINT)
-                self.setToolTip("Click & drag to move point")
-                self.setStatusTip(self.toolTip())
-                self.update()
-                break
-            elif shape.contains_point(pos):
-                if self.selected_vertex():
-                    self.h_shape.highlight_clear()
-                self.h_vertex, self.h_shape = None, shape
-                self.setToolTip(
-                    "Click & drag to move shape '%s'" % shape.label)
-                self.setStatusTip(self.toolTip())
-                self.override_cursor(CURSOR_GRAB)
-                self.update()
+        if self.mode in (self.CREATE, self.EDIT):
+            self.setToolTip("Image")
+            priority_list = self.shapes + ([self.selected_shape] if self.selected_shape else [])
+            for shape in reversed([s for s in priority_list if self.isVisible(s)]):
+                # Look for a nearby vertex to highlight. If that fails,
+                # check if we happen to be inside a shape.
+                index = shape.nearest_vertex(pos, self.epsilon)
+                if index is not None:
+                    if self.selected_vertex():
+                        self.h_shape.highlight_clear()
+                    self.h_vertex, self.h_shape = index, shape
+                    shape.highlight_vertex(index, shape.MOVE_VERTEX)
+                    self.override_cursor(CURSOR_POINT)
+                    self.setToolTip("Click & drag to move point")
+                    self.setStatusTip(self.toolTip())
+                    self.update()
+                    break
+                elif shape.contains_point(pos):
+                    if self.selected_vertex():
+                        self.h_shape.highlight_clear()
+                    self.h_vertex, self.h_shape = None, shape
+                    self.setToolTip(
+                        "Click & drag to move shape '%s'" % shape.label)
+                    self.setStatusTip(self.toolTip())
+                    self.override_cursor(CURSOR_GRAB)
+                    self.update()
 
-                # Display annotation width and height while hovering inside
-                point1 = self.h_shape[1]
-                point3 = self.h_shape[3]
-                current_width = abs(point1.x() - point3.x())
-                current_height = abs(point1.y() - point3.y())
-                self.parent().window().label_coordinates.setText(
-                        'Width: %d, Height: %d / X: %d; Y: %d' % (current_width, current_height, pos.x(), pos.y()))
-                break
-        else:  # Nothing found, clear highlights, reset state.
-            if self.h_shape:
-                self.h_shape.highlight_clear()
-                self.update()
-            self.h_vertex, self.h_shape = None, None
-            self.override_cursor(CURSOR_DEFAULT)
+                    # Display annotation width and height while hovering inside
+                    point1 = self.h_shape[1]
+                    point3 = self.h_shape[3]
+                    current_width = abs(point1.x() - point3.x())
+                    current_height = abs(point1.y() - point3.y())
+                    self.parent().window().label_coordinates.setText(
+                            'Width: %d, Height: %d / X: %d; Y: %d' % (current_width, current_height, pos.x(), pos.y()))
+                    break
+            else:  # Nothing found, clear highlights, reset state.
+                if self.h_shape:
+                    self.h_shape.highlight_clear()
+                    self.update()
+                self.h_vertex, self.h_shape = None, None
+                self.override_cursor(CURSOR_DEFAULT)
+        else:
+            pass
+
 
     def mousePressEvent(self, ev):
         pos = self.transform_pos(ev.pos())
@@ -270,7 +282,7 @@ class Canvas(QWidget):
         if ev.button() == Qt.LeftButton:
             if self.drawing():
                 self.handle_drawing(pos)
-            else:
+            elif self.editing():
                 selection = self.select_shape_point(pos)
                 self.prev_point = pos
 
@@ -278,7 +290,8 @@ class Canvas(QWidget):
                     # pan
                     QApplication.setOverrideCursor(QCursor(Qt.OpenHandCursor))
                     self.pan_initial_pos = ev.pos()
-
+            elif self.placing_points():
+                self.place_point(pos)
         elif ev.button() == Qt.RightButton and self.editing():
             self.select_shape_point(pos)
             self.prev_point = pos
@@ -347,6 +360,9 @@ class Canvas(QWidget):
             self.set_hiding()
             self.drawingPolygon.emit(True)
             self.update()
+        
+    def place_point(self, pos):
+        self.points.append(Point(pos))
 
     def set_hiding(self, enable=True):
         self._hide_background = self.hide_background if enable else False
@@ -534,6 +550,10 @@ class Canvas(QWidget):
             self.line.paint(p)
         if self.selected_shape_copy:
             self.selected_shape_copy.paint(p)
+        
+        # Paint points
+        for point in self.points:
+            point.paint(p)
 
         # Paint rect
         if self.current is not None and len(self.line) == 2:

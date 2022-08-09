@@ -771,9 +771,6 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def toggle_draw_points_mode(self, edit=True):
         self.canvas.set_placing_points(edit)
-        # self.actions.createPointsMode.setEnabled(edit)
-        # self.actions.createMode.setEnabled(not edit)
-        # self.actions.editMode.setEnabled(not edit)
 
     def set_create_mode(self):
         assert self.advanced()

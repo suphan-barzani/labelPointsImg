@@ -362,7 +362,7 @@ class Canvas(QWidget):
             self.update()
         
     def place_point(self, pos):
-        self.points.append(Point(pos))
+        self.points.append(QPointF(pos.x(), pos.y()))
 
     def set_hiding(self, enable=True):
         self._hide_background = self.hide_background if enable else False
@@ -552,8 +552,15 @@ class Canvas(QWidget):
             self.selected_shape_copy.paint(p)
         
         # Paint points
+        point_size = 6
+        scale = 1.0
+        d = point_size / scale
         for point in self.points:
-            point.paint(p)
+            path = QPainterPath()
+            path.addEllipse(point, d / 2.0, d / 2.0)
+            
+            p.drawPath(path)
+            p.fillPath(path, QColor(255, 0, 0, 255))
 
         # Paint rect
         if self.current is not None and len(self.line) == 2:

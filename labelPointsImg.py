@@ -269,7 +269,6 @@ class MainWindow(QMainWindow, WindowMixin):
                          'Ctrl+Shift+S', 'save-as', get_str('saveAsDetail'), enabled=False)
 
         close = action(get_str('closeCur'), self.close_file, 'Ctrl+W', 'close', get_str('closeCurDetail'))
-        # self.close = close
 
         delete_image = action(get_str('deleteImg'), self.delete_image, 'Ctrl+Shift+D', 'close', get_str('deleteImgDetail'))
 
@@ -280,23 +279,19 @@ class MainWindow(QMainWindow, WindowMixin):
 
         create_mode = action(get_str('crtBox'), self.set_create_mode,
                              'w', 'new', get_str('crtBoxDetail'), enabled=False)
-        # self.create_mode = create_mode
 
         edit_mode = action(get_str('editBox'), self.set_edit_mode,
                            'Ctrl+J', 'edit', get_str('editBoxDetail'), enabled=False)
-        # self.edit_mode = edit_mode
 
         create_points_mode = action(get_str('crtPoint'), self.set_create_points_mode,
                                    '', 'new-point', get_str('crtPointDetail'), enabled=False)
-        # self.create_points_mode = create_points_mode
+        create_points_mode.setCheckable(True)
 
         create = action(get_str('crtBox'), self.create_shape,
                         'w', 'new', get_str('crtBoxDetail'), enabled=False)
-        # self.create = create
 
         create_point = action(get_str('crtPoint'), self.create_point,
-                        'M', 'new-point', get_str('crtPointDetail'), enabled=False)
-        # self.create_point = create_point
+                        'm', 'new-point', get_str('crtPointDetail'), enabled=False)
                         
         delete = action(get_str('delBox'), self.delete_selected_shape,
                         'Delete', 'delete', get_str('delBoxDetail'), enabled=False)
@@ -406,7 +401,7 @@ class MainWindow(QMainWindow, WindowMixin):
                               lineColor=color1, create=create, delete=delete, edit=edit, copy=copy,
                               createMode=create_mode, editMode=edit_mode, advancedMode=advanced_mode,
                               shapeLineColor=shape_line_color, shapeFillColor=shape_fill_color,
-                              createPointsMode=create_points_mode,
+                              createPoint=create_point, createPointsMode=create_points_mode,
                               zoom=zoom, zoomIn=zoom_in, zoomOut=zoom_out, zoomOrg=zoom_org,
                               fitWindow=fit_window, fitWidth=fit_width,
                               zoomActions=zoom_actions,
@@ -757,7 +752,6 @@ class MainWindow(QMainWindow, WindowMixin):
         self.actions.create.setEnabled(False)
 
     def create_point(self):
-        assert self.beginner()
         self.actions.create_point.setEnabled(False)
 
     def toggle_drawing_sensitive(self, drawing=True):
@@ -777,16 +771,19 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def toggle_draw_points_mode(self, edit=True):
         self.canvas.set_placing_points(edit)
-        self.actions.createPointsMode.setEnabled(edit)
-        self.actions.createMode.setEnabled(not edit)
-        self.actions.editMode.setEnabled(not edit)
+        # self.actions.createPointsMode.setEnabled(edit)
+        # self.actions.createMode.setEnabled(not edit)
+        # self.actions.editMode.setEnabled(not edit)
 
     def set_create_mode(self):
         assert self.advanced()
         self.toggle_draw_mode(edit=False)
 
     def set_create_points_mode(self):
-        self.toggle_draw_points_mode(True)
+        if self.actions.createPointsMode.isChecked():
+            self.toggle_draw_points_mode(True)
+        else:
+            self.toggle_draw_points_mode(False)
 
     def set_edit_mode(self):
         assert self.advanced()

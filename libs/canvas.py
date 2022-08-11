@@ -76,7 +76,7 @@ class Canvas(QWidget):
         self.point_scale = 1.0
         self.point_diameter = self.point_size / self.scale
         self.point_fill_color = QColor(255, 0, 0, 255)
-        self.point_overlapped_fill_color = QColor(255, 0, 255, 255)
+        self.point_overlapped_fill_color = QColor(255, 255, 0, 255)
 
     def set_drawing_color(self, qcolor):
         self.drawing_line_color = qcolor
@@ -781,6 +781,7 @@ class Canvas(QWidget):
     def load_pixmap(self, pixmap):
         self.pixmap = pixmap
         self.shapes = []
+        self.points = []
         self.repaint()
 
     def load_shapes(self, shapes):

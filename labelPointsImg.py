@@ -552,7 +552,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.light_widget.valueChanged.connect(self.paint_canvas)
 
         self.populate_mode_actions()
-        
+
         # Display the number of placed points in the image
         self.label_points = QLabel('')
         self.statusBar().addPermanentWidget(self.label_points)

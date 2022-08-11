@@ -552,6 +552,10 @@ class MainWindow(QMainWindow, WindowMixin):
         self.light_widget.valueChanged.connect(self.paint_canvas)
 
         self.populate_mode_actions()
+        
+        # Display the number of placed points in the image
+        self.label_points = QLabel('')
+        self.statusBar().addPermanentWidget(self.label_points)
 
         # Display cursor coordinates at the right of status bar
         self.label_coordinates = QLabel('')
@@ -691,6 +695,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.label_file = None
         self.canvas.reset_state()
         self.label_coordinates.clear()
+        self.label_points.clear()
         self.combo_box.cb.clear()
 
         if not keep_points:

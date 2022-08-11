@@ -71,6 +71,13 @@ class Canvas(QWidget):
         # initialisation for panning
         self.pan_initial_pos = QPoint()
 
+        # Point graphical parameters
+        self.point_size = 6
+        self.point_scale = 1.0
+        self.point_diameter = self.point_size / self.scale
+        self.point_fill_color = QColor(255, 0, 0, 255)
+        self.point_overlapped_fill_color = QColor(255, 0, 255, 255)
+
     def set_drawing_color(self, qcolor):
         self.drawing_line_color = qcolor
         self.drawing_rect_color = qcolor
@@ -130,7 +137,13 @@ class Canvas(QWidget):
         window = self.parent().window()
         if window.file_path is not None:
             self.parent().window().label_coordinates.setText(
-                'X: %d; Y: %d' % (pos.x(), pos.y()))
+                'X: %d; Y: %d' % (pos.x(), pos.y())
+            )
+
+            if self.placing_points():
+                self.parent().window().label_points.setText(
+                    f'Point count: {len(self.points)}'
+                )
 
         # Polygon drawing.
         if self.drawing():
@@ -272,8 +285,6 @@ class Canvas(QWidget):
                     self.update()
                 self.h_vertex, self.h_shape = None, None
                 self.override_cursor(CURSOR_DEFAULT)
-        else:
-            pass
 
 
     def mousePressEvent(self, ev):
@@ -295,10 +306,25 @@ class Canvas(QWidget):
         elif ev.button() == Qt.RightButton and self.editing():
             self.select_shape_point(pos)
             self.prev_point = pos
+        elif ev.button() == Qt.RightButton and self.placing_points():
+            points_to_delete = []
+
+            for point in reversed(self.points):
+                if     pos.x() >= point.x() - self.point_diameter*1.25 \
+                   and pos.x() <= point.x() + self.point_diameter*1.25 \
+                   and pos.y() >= point.y() - self.point_diameter*1.25 \
+                   and pos.y() <= point.y() + self.point_diameter*1.25:
+                    points_to_delete.append(point)
+                    break
+
+            for point in points_to_delete:
+                self.points.remove(point)
         self.update()
 
     def mouseReleaseEvent(self, ev):
-        if ev.button() == Qt.RightButton:
+        if ev.button() == Qt.RightButton and self.placing_points():
+            pass
+        elif ev.button() == Qt.RightButton:
             menu = self.menus[bool(self.selected_shape_copy)]
             self.restore_cursor()
             if not menu.exec_(self.mapToGlobal(ev.pos()))\
@@ -517,6 +543,16 @@ class Canvas(QWidget):
         if not self.bounded_move_shape(shape, point - offset):
             self.bounded_move_shape(shape, point + offset)
 
+    def there_is_a_point_below(self, point_above, points_below):
+        for point_below in points_below:
+            if     point_above.x() >= point_below.x() - self.point_diameter/2 \
+               and point_above.x() <= point_below.x() + self.point_diameter/2 \
+               and point_above.y() >= point_below.y() - self.point_diameter/2 \
+               and point_above.y() <= point_below.y() + self.point_diameter/2:
+                return True
+
+        return False
+
     def paintEvent(self, event):
         if not self.pixmap:
             return super(Canvas, self).paintEvent(event)
@@ -552,15 +588,16 @@ class Canvas(QWidget):
             self.selected_shape_copy.paint(p)
         
         # Paint points
-        point_size = 6
-        scale = 1.0
-        d = point_size / scale
-        for point in self.points:
+        for i, point in enumerate(self.points):
             path = QPainterPath()
-            path.addEllipse(point, d / 2.0, d / 2.0)
+            path.addEllipse(point, self.point_diameter / 2.0, self.point_diameter / 2.0)
             
             p.drawPath(path)
-            p.fillPath(path, QColor(255, 0, 0, 255))
+
+            if self.there_is_a_point_below(point, self.points[:i]):
+                p.fillPath(path, self.point_overlapped_fill_color)
+            else:
+                p.fillPath(path, self.point_fill_color)
 
         # Paint rect
         if self.current is not None and len(self.line) == 2:

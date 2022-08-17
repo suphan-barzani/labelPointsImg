@@ -284,8 +284,8 @@ class MainWindow(QMainWindow, WindowMixin):
                            'Ctrl+J', 'edit', get_str('editBoxDetail'), enabled=False)
 
         create_points_mode = action(get_str('crtPoint'), self.set_create_points_mode,
-                                   '', 'new-point', get_str('crtPointDetail'), enabled=False)
-        create_points_mode.setCheckable(True)
+                                   '', 'new-point', get_str('crtPointDetail'), enabled=False,
+                                   checkable=True)
 
         create = action(get_str('crtBox'), self.create_shape,
                         'w', 'new', get_str('crtBoxDetail'), enabled=False)
@@ -697,6 +697,8 @@ class MainWindow(QMainWindow, WindowMixin):
         self.label_coordinates.clear()
         self.label_points.clear()
         self.combo_box.cb.clear()
+
+        self.actions.createPointsMode.setChecked(False)
 
         if not keep_points:
             self.points_annotation_file = None
@@ -1154,7 +1156,10 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def load_file(self, file_path=None):
         """Load the specified file, or the last opened file if None."""
-        self.reset_state(keep_points='points' in file_path[-10:-4])
+        self.canvas.set_editing(True)
+        # self.actions.create_point.setEnabled(False)
+
+        self.reset_state(keep_points='.points.' in file_path[-11:-3])
         # print(f'--- {self.points_annotation_file} ---')
         self.canvas.setEnabled(False)
         if file_path is None:

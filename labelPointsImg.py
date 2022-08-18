@@ -207,6 +207,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.canvas.shapeMoved.connect(self.set_dirty)
         self.canvas.selectionChanged.connect(self.shape_selection_changed)
         self.canvas.drawingPolygon.connect(self.toggle_drawing_sensitive)
+        self.canvas.newPoint.connect(self.new_point)
 
         self.setCentralWidget(scroll)
         self.addDockWidget(Qt.RightDockWidgetArea, self.dock)
@@ -1057,6 +1058,9 @@ class MainWindow(QMainWindow, WindowMixin):
         else:
             # self.canvas.undoLastLine()
             self.canvas.reset_all_lines()
+    
+    def new_point(self):
+        self.set_dirty()
 
     def scroll_request(self, delta, orientation):
         units = - delta / (8 * 15)
@@ -1599,6 +1603,7 @@ class MainWindow(QMainWindow, WindowMixin):
             self.load_file(filename)
 
     def save_file(self, _value=False):
+        print('LLEGA')
         if self.default_save_dir is not None and len(ustr(self.default_save_dir)):
             if self.file_path:
                 image_file_name = os.path.basename(self.file_path)

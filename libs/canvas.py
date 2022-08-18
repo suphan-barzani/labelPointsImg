@@ -27,6 +27,8 @@ class Canvas(QWidget):
     lightRequest = pyqtSignal(int)
     scrollRequest = pyqtSignal(int, int)
     newShape = pyqtSignal()
+    newPoint = pyqtSignal()
+
     selectionChanged = pyqtSignal(bool)
     shapeMoved = pyqtSignal()
     drawingPolygon = pyqtSignal(bool)
@@ -319,6 +321,9 @@ class Canvas(QWidget):
 
             for point in points_to_delete:
                 self.points.remove(point)
+            
+            if len(points_to_delete) != 0:
+                self.newPoint.emit()
         self.update()
 
     def mouseReleaseEvent(self, ev):
@@ -389,6 +394,7 @@ class Canvas(QWidget):
         
     def place_point(self, pos):
         self.points.append(QPointF(pos.x(), pos.y()))
+        self.newPoint.emit()
 
     def set_hiding(self, enable=True):
         self._hide_background = self.hide_background if enable else False

@@ -393,7 +393,7 @@ class Canvas(QWidget):
             self.update()
         
     def place_point(self, pos):
-        self.points.append(QPointF(pos.x(), pos.y()))
+        self.points.append(QPoint(pos.x(), pos.y()))
         self.newPoint.emit()
 
     def set_hiding(self, enable=True):

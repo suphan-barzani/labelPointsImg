@@ -647,10 +647,15 @@ class MainWindow(QMainWindow, WindowMixin):
         self.dirty = True
         self.actions.save.setEnabled(True)
 
-    def set_clean(self):
+    def set_clean(self, for_points=False):
         self.dirty = False
+
+        self.actions.createPointsMode.setChecked(False)
+        self.toggle_draw_points_mode(False)
         self.actions.save.setEnabled(False)
-        self.actions.create.setEnabled(True)
+
+        if not for_points:
+            self.actions.create.setEnabled(True)
 
     def toggle_actions(self, value=True):
         """Enable/Disable widgets which depend on an opened image."""
@@ -981,6 +986,12 @@ class MainWindow(QMainWindow, WindowMixin):
         except LabelFileError as e:
             self.error_message(u'Error saving label data', u'<b>%s</b>' % e)
             return False
+        
+    def save_points(self, file_path):
+        for point in self.canvas.points:
+            print(f'{point.x()}, {point.y()}')
+        
+        return True
 
     def copy_selected_shape(self):
         self.add_label(self.canvas.copy_selected_shape())
@@ -1603,7 +1614,6 @@ class MainWindow(QMainWindow, WindowMixin):
             self.load_file(filename)
 
     def save_file(self, _value=False):
-        print('LLEGA')
         if self.default_save_dir is not None and len(ustr(self.default_save_dir)):
             if self.file_path:
                 image_file_name = os.path.basename(self.file_path)
@@ -1641,10 +1651,16 @@ class MainWindow(QMainWindow, WindowMixin):
         return ''
 
     def _save_file(self, annotation_file_path):
-        if annotation_file_path and self.save_labels(annotation_file_path):
-            self.set_clean()
-            self.statusBar().showMessage('Saved to  %s' % annotation_file_path)
-            self.statusBar().show()
+        if self.points_annotation_file is None:
+            if annotation_file_path and self.save_labels(annotation_file_path):
+                self.set_clean()
+                self.statusBar().showMessage('Saved to  %s' % annotation_file_path)
+                self.statusBar().show()
+        else:
+            if self.save_points(annotation_file_path):
+                self.set_clean(for_points=True)
+                self.statusBar().showMessage('Saved to  %s' % annotation_file_path)
+                self.statusBar().show()
 
     def close_file(self, _value=False):
         if not self.may_continue():

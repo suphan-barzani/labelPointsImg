@@ -6,6 +6,7 @@ import os.path
 import platform
 import shutil
 import sys
+import csv
 import webbrowser as wb
 from functools import partial
 
@@ -988,8 +989,12 @@ class MainWindow(QMainWindow, WindowMixin):
             return False
         
     def save_points(self, file_path):
-        for point in self.canvas.points:
-            print(f'{point.x()}, {point.y()}')
+        if len(self.canvas.points) != 0:
+            with open(f'{file_path}', 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile, delimiter=' ')
+                
+                for point in self.canvas.points:
+                    writer.writerow((point.x(), point.y()))
         
         return True
 
@@ -1296,35 +1301,16 @@ class MainWindow(QMainWindow, WindowMixin):
                 self.load_create_ml_json_by_filename(json_path, file_path)
     
     def show_points_from_annotation_file(self):
-        pass
-        # if self.default_save_dir is not None:
-        #     basename = os.path.basename(os.path.splitext(file_path)[0])
-        #     xml_path = os.path.join(self.default_save_dir, basename + XML_EXT)
-        #     txt_path = os.path.join(self.default_save_dir, basename + TXT_EXT)
-        #     json_path = os.path.join(
-        #         self.default_save_dir, basename + JSON_EXT)
+        filename_without_extension = os.path.splitext(self.points_annotation_file)[0]
+        filename = f'{filename_without_extension[:-7]}_{self.cur_img_idx}.points'
 
-        #     """Annotation file priority:
-        #     PascalXML > YOLO
-        #     """
-        #     if os.path.isfile(xml_path):
-        #         self.load_pascal_xml_by_filename(xml_path)
-        #     elif os.path.isfile(txt_path):
-        #         self.load_yolo_txt_by_filename(txt_path)
-        #     elif os.path.isfile(json_path):
-        #         self.load_create_ml_json_by_filename(json_path, file_path)
+        if os.path.exists(filename):
+            with open(filename, newline='') as csvfile:
+                reader = csv.reader(csvfile, delimiter=' ')
 
-        # else:
-        #     xml_path = os.path.splitext(file_path)[0] + XML_EXT
-        #     txt_path = os.path.splitext(file_path)[0] + TXT_EXT
-        #     json_path = os.path.splitext(file_path)[0] + JSON_EXT
-
-        #     if os.path.isfile(xml_path):
-        #         self.load_pascal_xml_by_filename(xml_path)
-        #     elif os.path.isfile(txt_path):
-        #         self.load_yolo_txt_by_filename(txt_path)
-        #     elif os.path.isfile(json_path):
-        #         self.load_create_ml_json_by_filename(json_path, file_path)
+                for row in reader:
+                    coords = (int(row[0]), int(row[1]))
+                    self.canvas.place_point(coords, is_loading=True)
 
     def resizeEvent(self, event):
         if self.canvas and not self.image.isNull()\
@@ -1508,6 +1494,8 @@ class MainWindow(QMainWindow, WindowMixin):
                 item = QListWidgetItem(imgPath)
                 self.file_list_widget.addItem(item)
             
+            self.default_save_dir = os.path.dirname(filename)
+            
             # self.load_file(self.m_img_list[0])
 
     def import_dir_images(self, dir_path):
@@ -1625,8 +1613,11 @@ class MainWindow(QMainWindow, WindowMixin):
             image_file_name = os.path.basename(self.file_path)
             saved_file_name = os.path.splitext(image_file_name)[0]
             saved_path = os.path.join(image_file_dir, saved_file_name)
-            self._save_file(saved_path if self.label_file
-                            else self.save_file_dialog(remove_ext=False))
+
+            if self.label_file:
+                self._save_file(saved_path)
+            else:
+                self._save_file(self.save_file_dialog(remove_ext=False))
 
     def save_file_as(self, _value=False):
         assert not self.image.isNull(), "cannot save empty image"

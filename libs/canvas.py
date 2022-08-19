@@ -304,7 +304,7 @@ class Canvas(QWidget):
                     QApplication.setOverrideCursor(QCursor(Qt.OpenHandCursor))
                     self.pan_initial_pos = ev.pos()
             elif self.placing_points():
-                self.place_point(pos)
+                self.place_point((pos.x(), pos.y()))
         elif ev.button() == Qt.RightButton and self.editing():
             self.select_shape_point(pos)
             self.prev_point = pos
@@ -392,9 +392,13 @@ class Canvas(QWidget):
             self.drawingPolygon.emit(True)
             self.update()
         
-    def place_point(self, pos):
-        self.points.append(QPoint(pos.x(), pos.y()))
-        self.newPoint.emit()
+    def place_point(self, coords, is_loading=False):
+        x = coords[0]
+        y = coords[1]
+        self.points.append(QPoint(x, y))
+
+        if not is_loading:
+            self.newPoint.emit()
 
     def set_hiding(self, enable=True):
         self._hide_background = self.hide_background if enable else False

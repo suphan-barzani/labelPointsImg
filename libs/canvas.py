@@ -393,8 +393,8 @@ class Canvas(QWidget):
             self.update()
         
     def place_point(self, coords, is_loading=False):
-        x = coords[0]
-        y = coords[1]
+        x = int(coords[0])
+        y = int(coords[1])
         self.points.append(QPoint(x, y))
 
         if not is_loading:
@@ -596,6 +596,12 @@ class Canvas(QWidget):
             self.line.paint(p)
         if self.selected_shape_copy:
             self.selected_shape_copy.paint(p)
+
+        side_length = min(self.pixmap.size().width(), self.pixmap.size().height())
+        self.point_size = (7/600.)*side_length
+        self.point_diameter = self.point_size / self.scale
+
+        print(f"____ POINT SIZE = {self.point_size}")
         
         # Paint points
         for i, point in enumerate(self.points):
